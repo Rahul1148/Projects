@@ -6,23 +6,28 @@
 
 #include "hal_data.h"
 #include <stdio.h>
-#include <unistd.h>
+#include "syscall.h"
+
+#define UART_BUFFER_SIZE 1024
 
 void R_BSP_WarmStart(bsp_warm_start_event_t event);
 
 static volatile bool txComplete = false;
 
-int puts(const char *str)
+int _write(int file, char *ptr, int len)
 {
-    txComplete = false;
-    fsp_err_t err = FSP_SUCCESS;
-    uint8_t data[256] = {0};
-    int len = 0;
-    len = sprintf((char*)data, str);
+    /* Transmit each character */
+    (void)file;
+    int tx_count;
+    int i;
 
-    err =  R_SCI_UART_Write(&g_uart0_ctrl, data, (uint32_t)len);
-    assert(err == FSP_SUCCESS);
-    return 0;
+    for (i = 0, tx_count = 0; i < len; i++,tx_count++)
+    {
+        txComplete = false;
+        R_SCI_UART_Write(&g_uart0_ctrl, (uint8_t *)&ptr[i], 1);
+        while(!txComplete){};
+    }
+    return tx_count;
 }
 
 
@@ -30,9 +35,16 @@ int puts(const char *str)
 void user_uart_callback(uart_callback_args_t *p_args)
 {
     /* TODO: add your own code here */
-    if(p_args->event == UART_EVENT_TX_COMPLETE)
+    switch(p_args->event)
     {
-        txComplete = true;
+        case UART_EVENT_TX_COMPLETE:
+            txComplete = true;
+            break;
+        case UART_EVENT_RX_CHAR:
+            break;
+        default:
+            break;
+
     }
 }
 
@@ -54,10 +66,13 @@ void hal_entry (void)
     fsp_err_t err = FSP_SUCCESS;
     R_SCI_UART_Open(&g_uart0_ctrl, &g_uart0_cfg);
     assert(err == FSP_SUCCESS);
+    setvbuf(stdout, NULL, _IONBF, UART_BUFFER_SIZE);
+
+    int a =10;
 
   while(1)
   {
-      printf("Hello World ....\r\n\n");
+      printf("%d\r\n",a);
       R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_SECONDS);
   }
 
