@@ -15,8 +15,8 @@ extern sci_uart_instance_ctrl_t g_uart0_ctrl;
 extern const uart_cfg_t g_uart0_cfg;
 extern const sci_uart_extended_cfg_t g_uart0_cfg_extend;
 
-#ifndef NULL
-void NULL(uart_callback_args_t *p_args);
+#ifndef user_uart_callback
+void user_uart_callback(uart_callback_args_t *p_args);
 #endif
 void hal_entry(void);
 void g_hal_init(void);

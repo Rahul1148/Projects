@@ -5,12 +5,37 @@
 */
 
 #include "hal_data.h"
+#include <stdio.h>
+#include <unistd.h>
 
 void R_BSP_WarmStart(bsp_warm_start_event_t event);
 
-extern bsp_leds_t g_bsp_leds;
-uint8_t data[] = "abcde\r";
-uint8_t data1 = 'B';
+static volatile bool txComplete = false;
+
+int puts(const char *str)
+{
+    txComplete = false;
+    fsp_err_t err = FSP_SUCCESS;
+    uint8_t data[256] = {0};
+    int len = 0;
+    len = sprintf((char*)data, str);
+
+    err =  R_SCI_UART_Write(&g_uart0_ctrl, data, (uint32_t)len);
+    assert(err == FSP_SUCCESS);
+    return 0;
+}
+
+
+/* Callback function */
+void user_uart_callback(uart_callback_args_t *p_args)
+{
+    /* TODO: add your own code here */
+    if(p_args->event == UART_EVENT_TX_COMPLETE)
+    {
+        txComplete = true;
+    }
+}
+
 /*******************************************************************************************************************//**
  * @brief  Blinky example application
  *
@@ -19,91 +44,23 @@ uint8_t data1 = 'B';
  **********************************************************************************************************************/
 void hal_entry (void)
 {
-    fsp_err_t err = FSP_SUCCESS;
+
 #if BSP_TZ_SECURE_BUILD
 
     /* Enter non-secure code */
     R_BSP_NonSecureEnter();
 #endif
 
-    /* Define the units to be used with the software delay function */
-    const bsp_delay_units_t bsp_delay_units = BSP_DELAY_UNITS_MILLISECONDS;
+    fsp_err_t err = FSP_SUCCESS;
+    R_SCI_UART_Open(&g_uart0_ctrl, &g_uart0_cfg);
+    assert(err == FSP_SUCCESS);
 
-    /* Set the blink frequency (must be <= bsp_delay_units */
-    const uint32_t freq_in_hz = 2;
+  while(1)
+  {
+      printf("Hello World ....\r\n\n");
+      R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_SECONDS);
+  }
 
-    /* Calculate the delay in terms of bsp_delay_units */
-    const uint32_t delay = bsp_delay_units / freq_in_hz;
-
-    /* LED type structure */
-    bsp_leds_t leds = g_bsp_leds;
-
-    /* If this board has no LEDs then trap here */
-    if (0 == leds.led_count)
-    {
-        while (1)
-        {
-            ;// There are no LEDs on this board
-        }
-    }
-    /* Holds level to set for pins */
-    bsp_io_level_t pin_level = BSP_IO_LEVEL_LOW;
-    err = R_SCI_UART_Open(&g_uart0_ctrl, &g_uart0_cfg);
-    if(err != FSP_SUCCESS)
-    {
-        while(1);
-    }
-    err = R_SCI_UART_Write(&g_uart0_ctrl, data, sizeof(data));
-    if(err != FSP_SUCCESS)
-    {
-        while(1);
-    }
-    err = R_SCI_UART_Write(&g_uart0_ctrl, &data1, sizeof(data1));
-    if(err != FSP_SUCCESS)
-    {
-        while(1);
-    }
-
-
-
-//    while (1)
-//    {
-//        /* Enable access to the PFS registers. If using r_ioport module then register protection is automatically
-//         * handled. This code uses BSP IO functions to show how it is used.
-//         */
-//        R_BSP_PinAccessEnable();
-//
-//
-//
-////        R_SCI_UART_Read(&g_uart0_ctrl, p_dest, bytes);
-//
-//        /* Update all board LEDs */
-//        for (uint32_t i = 0; i < leds.led_count; i++)
-//        {
-//            /* Get pin to toggle */
-//            uint32_t pin = leds.p_leds[i];
-//
-//            /* Write to this pin */
-//            R_BSP_PinWrite((bsp_io_port_pin_t) pin, pin_level);
-//        }
-//
-//        /* Protect PFS registers */
-//        R_BSP_PinAccessDisable();
-//
-//        /* Toggle level for next write */
-//        if (BSP_IO_LEVEL_LOW == pin_level)
-//        {
-//            pin_level = BSP_IO_LEVEL_HIGH;
-//        }
-//        else
-//        {
-//            pin_level = BSP_IO_LEVEL_LOW;
-//        }
-//
-//        /* Delay */
-//        R_BSP_SoftwareDelay(delay, bsp_delay_units);
-//    }
-    R_SCI_UART_Close(&g_uart0_ctrl);
 }
 
 
