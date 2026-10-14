@@ -56,7 +56,7 @@ void user_uart_callback(uart_callback_args_t *p_args)
  **********************************************************************************************************************/
 void hal_entry (void)
 {
-
+// this is the main function.
 #if BSP_TZ_SECURE_BUILD
 
     /* Enter non-secure code */
