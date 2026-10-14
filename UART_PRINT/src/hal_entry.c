@@ -58,7 +58,7 @@ void hal_entry (void)
 {
 
 #if BSP_TZ_SECURE_BUILD
-
+// Some one writing something
     /* Enter non-secure code */
     R_BSP_NonSecureEnter();
 #endif
